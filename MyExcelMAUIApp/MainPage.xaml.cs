@@ -9,6 +9,7 @@ namespace MyExcelMAUIApp
     {
         const int CountColumn = 20; 
         private Spreadsheet spreadsheet = new();
+        private Entry _activeEntry;
         private readonly FileService fileService = new();
         private bool hasUnsavedChanges = false;
         private string FilePath => Path.Combine(FileSystem.AppDataDirectory, "table.json");
@@ -18,6 +19,8 @@ namespace MyExcelMAUIApp
         {
             InitializeComponent();
             CreateGrid();
+            textInput.TextChanged += TextInput_TextChanged;
+            textInput.Unfocused += TextInput_Unfocused;
         }
         private void CreateGrid()
         {
@@ -108,9 +111,13 @@ namespace MyExcelMAUIApp
 
         private void Entry_Focused(object sender, FocusEventArgs e)
         {
-            var entry = (Entry)sender;
-            // під час редагування завжди показуємо вираз
-            entry.Text = spreadsheet.GetCell(CellName(entry)).Expression;
+            _activeEntry = (Entry)sender; 
+          string currentExpression = spreadsheet.GetCell(CellName(_activeEntry)).Expression;
+          _activeEntry.Text = currentExpression;
+          if (textInput != null)
+    {
+        textInput.Text = currentExpression;
+    }
         }
 
         private void RefreshGrid()
@@ -279,5 +286,31 @@ namespace MyExcelMAUIApp
             spreadsheet.DeleteColumn();
             hasUnsavedChanges = true;
         }
+        private void TextInput_TextChanged(object sender, TextChangedEventArgs e)
+{
+    // Якщо клітинка обрана і ми зараз друкуємо у верхньому полі - дублюємо текст вниз
+    if (_activeEntry != null && textInput.IsFocused)
+    {
+        _activeEntry.Text = e.NewTextValue;
+    }
+}
+
+private void TextInput_Unfocused(object sender, FocusEventArgs e)
+{
+    
+    if (_activeEntry != null)
+    {
+        var name = CellName(_activeEntry);
+        var newText = textInput.Text ?? "";
+        
+        if (newText != spreadsheet.GetCell(name).Expression)
+        {
+            spreadsheet.SetExpression(name, newText);
+            hasUnsavedChanges = true;
+            if (mode == ViewMode.VALUE) spreadsheet.CalculateAll();
+        }
+        RefreshGrid();
+    }
+}
     }
 }
