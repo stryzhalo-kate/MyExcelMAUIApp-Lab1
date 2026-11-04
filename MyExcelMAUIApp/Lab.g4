@@ -6,6 +6,8 @@ logical
     : NOT logical                          #NotExpr
     | arith op=(LE | GE | NE) arith        #CompareExpr
     | LPAREN logical RPAREN                #ParenLogicalExpr
+    | TRUE    #TrueLogicalExpr
+    | FALSE   #FalseLogicalExpr
     ;
 
 arith
@@ -15,6 +17,8 @@ arith
     | op=(MMAX | MMIN) LPAREN arglist RPAREN             #MinMaxExpr
     | NUMBER                                             #NumberExpr
     | IDENTIFIER                                         #CellRefExpr
+    | TRUE    #TrueArithExpr
+    | FALSE   #FalseArithExpr
     ;
 
 arglist : arith (COMMA arith)* ;
@@ -37,4 +41,6 @@ RPAREN   : ')' ;
 COMMA    : ',' ;
 NUMBER     : [0-9]+ ;
 IDENTIFIER : [A-Z]+ [1-9] [0-9]* ;
+TRUE     : 'true' ;
+FALSE    : 'false' ;
 WS : [ \t\r\n]+ -> skip ;
