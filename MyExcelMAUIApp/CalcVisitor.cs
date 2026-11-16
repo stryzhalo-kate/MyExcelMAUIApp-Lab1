@@ -1,13 +1,20 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 namespace MyExcelMAUIApp;
 
 public class CalcVisitor : LabBaseVisitor<BigInteger>
-{   
+{
     public override BigInteger VisitTrueLogicalExpr(LabParser.TrueLogicalExprContext ctx) => BigInteger.One;
     public override BigInteger VisitFalseLogicalExpr(LabParser.FalseLogicalExprContext ctx) => BigInteger.Zero;
-    public override BigInteger VisitTrueArithExpr(LabParser.TrueArithExprContext ctx) => BigInteger.One;
-    public override BigInteger VisitFalseArithExpr(LabParser.FalseArithExprContext ctx) => BigInteger.Zero;
+    public override BigInteger VisitTrueArithExpr(LabParser.TrueArithExprContext ctx)
+    => throw new ExpressionException(
+        "Семантична помилка: логічне значення true не можна використовувати в арифметичному виразі",
+        ctx.Start.StartIndex);
+
+    public override BigInteger VisitFalseArithExpr(LabParser.FalseArithExprContext ctx)
+        => throw new ExpressionException(
+            "Семантична помилка: логічне значення false не можна використовувати в арифметичному виразі",
+            ctx.Start.StartIndex);
     private readonly Spreadsheet spreadsheet;
 
     public CalcVisitor(Spreadsheet spreadsheet)
