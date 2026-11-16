@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Text.RegularExpressions;
 
 namespace MyExcelMAUIApp;
@@ -6,7 +6,7 @@ namespace MyExcelMAUIApp;
 public class Spreadsheet
 {
     private readonly Dictionary<string, Cell> cells = new();
-    private readonly HashSet<string> evaluating = new();
+    private readonly List<string> evaluating = new();
     private readonly ExpressionEvaluator evaluator = new();
     private int rowCount = 50;
     private int columnCount = 20;
@@ -49,7 +49,10 @@ public class Spreadsheet
 
         EvaluateCell(cell);
         if (cell.Error != "") throw new ExpressionException($"Помилка в клітинці {name}");
-        return cell.Value!.Value ? BigInteger.One : BigInteger.Zero;
+        EvaluateCell(cell);
+        if (cell.Error != "") throw new ExpressionException($"Помилка в клітинці {name}");
+        throw new ExpressionException(
+            $"Семантична помилка: клітинка {name} містить логічне значення, а потрібне число");
     }
 
     private void EvaluateCell(Cell cell)
@@ -58,19 +61,27 @@ public class Spreadsheet
         if (text == "" || BigInteger.TryParse(text, out _)) return;
         if (cell.Value.HasValue || cell.Error != "") return;
 
-        if (!evaluating.Add(cell.Name))
-            throw new ExpressionException($"Циклічне посилання на {cell.Name}");
+        int pos = evaluating.IndexOf(cell.Name);
+        if (pos >= 0)
+        {
+            string message = $"Циклічне посилання на {cell.Name}";
+            foreach (var name in evaluating.Skip(pos))
+                GetCell(name).Error = message;
+            throw new ExpressionException(message);
+        }
+
+        evaluating.Add(cell.Name);
         try
         {
             cell.Value = evaluator.Evaluate(text, this);
         }
         catch (ExpressionException ex)
         {
-            cell.Error = ex.Message;
+            if (cell.Error == "") cell.Error = ex.Message;
         }
         finally
         {
-            evaluating.Remove(cell.Name);
+            evaluating.RemoveAt(evaluating.Count - 1);
         }
     }
 
